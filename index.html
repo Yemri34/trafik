@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Trafik Yarışı 3D</title>
+<title>araba</title>
 <style>
 :root{--bg:#12161d;--btn:#2d3643;--acc:#f2b84b;--ui:#f4f1ea}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
@@ -21,12 +21,20 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-acti
 #rpmw i{display:block;height:100%;width:0;background:#5cd68a}
 #zone{position:absolute;top:54px;left:0;right:0;text-align:center;font-size:24px;font-weight:800;text-shadow:0 2px 8px #000;opacity:0;transition:opacity .7s;pointer-events:none;z-index:3}
 #zone.show{opacity:1}
-#msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(14,18,26,.85);text-align:center;padding:24px;z-index:4}
-#msg h1{margin:0;font-size:34px}
-#msg div{max-width:380px;line-height:1.4}
-#msg button{padding:14px 36px;font-size:20px;font-weight:800;border:0;border-radius:14px;background:var(--acc);color:#1c2430;cursor:pointer; margin-top: 10px;}
-#liderler { background: rgba(0,0,0,0.4); padding: 10px 20px; border-radius: 12px; min-width: 250px; }
-#liderler h3 { margin: 0 0 10px 0; color: var(--acc); }
+
+/* Yeni Menü Tasarımları */
+#msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;background:rgba(14,18,26,.85);text-align:center;padding:24px;z-index:4}
+#msg h1{margin:0;font-size:42px; text-transform: uppercase; letter-spacing: 2px;}
+#msg button{padding:14px 36px;font-size:20px;font-weight:800;border:0;border-radius:14px;background:var(--acc);color:#1c2430;cursor:pointer; width: 220px; margin-bottom: 8px;}
+.menu-panel { display: flex; flex-direction: column; align-items: center; }
+#ms { max-width:380px; line-height:1.4; margin-bottom: 20px; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 12px; }
+
+/* Skor Tablosu */
+#liderlerContainer { background: rgba(0,0,0,0.5); padding: 15px 20px; border-radius: 12px; min-width: 280px; max-height: 45vh; overflow-y: auto; margin-bottom: 20px; text-align: left; }
+#liderlerContainer h3 { margin: 0 0 10px 0; color: var(--acc); text-align: center; }
+#liderlerContainer ol { margin: 0; padding-left: 25px; }
+#liderlerContainer li { margin-bottom: 8px; font-size: 17px;}
+.crown-1 { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 6px #ffeb3b) drop-shadow(0 0 10px #ff9800); font-size: 1.3em; margin-right: 4px; display: inline-block; vertical-align: middle; }
 
 /* Mobil Alt Kontroller */
 #ctrl{display:none;gap:10px;padding:10px 14px;align-items:flex-end;justify-content:space-between;}
@@ -48,11 +56,31 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-acti
     <canvas id="c"></canvas>
     <div id="zone"></div>
     <div id="gr">1</div><div id="rpmw"><i id="rb"></i></div>
+    
     <div id="msg">
-        <h1 id="mt">Trafik Yarışı 3D</h1>
-        <div id="ms">Oyun Modunu sol üstteki butondan seçebilirsin!<br><br><b>💻 PC Kontrolleri:</b><br>- Boşluk (Space): Gaz<br>- S: Fren<br>- A / D: Sol ve Sağ<br>- V / B: Vites Yükselt ve Düşür<br>- C: Kamera Değiştir<br><br><b>📱 Mobil Kontroller:</b> Ekrana dokun ve çevir.</div>
-        <button id="go">Başla</button>
+        <h1 id="mt">araba</h1>
+        <div id="crashInfo" style="display:none; color:var(--acc); font-weight:bold; font-size:18px; line-height:1.4; margin-bottom:10px;"></div>
+        
+        <!-- Ana Menü -->
+        <div id="mainMenu" class="menu-panel">
+            <button id="go">başlat</button>
+            <button id="btnKeys">tuşlar</button>
+            <button id="btnScore">skor</button>
+        </div>
+
+        <!-- Tuşlar Menüsü -->
+        <div id="keysMenu" class="menu-panel" style="display:none;">
+            <div id="ms">Oyun Modunu sol üstteki butondan seçebilirsin!<br><br><b>💻 PC Kontrolleri:</b><br>- Boşluk (Space): Gaz<br>- S: Fren<br>- A / D: Sol ve Sağ<br>- V / B: Vites Yükselt ve Düşür<br>- C: Kamera Değiştir<br><br><b>📱 Mobil Kontroller:</b> Ekrana dokun ve çevir.</div>
+            <button id="backFromKeys">geri</button>
+        </div>
+
+        <!-- Skor Menüsü -->
+        <div id="scoreMenu" class="menu-panel" style="display:none;">
+            <div id="liderlerContainer">Yükleniyor...</div>
+            <button id="backFromScore">geri</button>
+        </div>
     </div>
+
     <button id="cam">3. Kişi</button>
     <button id="devTog">💻 PC Modu</button>
   </div>
@@ -384,27 +412,58 @@ function update(dt){
   shake=Math.max(0,shake-dt);
 }
 
+// Skoru Firebase'den çekme fonksiyonu - İlk 20 ve Taç mantığı burada
 function skorTablosunuGetir() {
-  db.collection("skorlar").orderBy("skor", "desc").limit(5).get()
+  db.collection("skorlar").orderBy("skor", "desc").limit(20).get()
     .then((querySnapshot) => {
-      let liste = "<h3>🏆 En İyiler 🏆</h3><ol style='text-align:left; font-size:18px; margin: 0; padding-left: 20px;'>";
+      let liste = "<h3>🏆 En İyiler (İlk 20) 🏆</h3><ol>";
+      let i = 0;
       querySnapshot.forEach((doc) => {
         const veri = doc.data();
-        liste += `<li style="margin-bottom: 5px;"><b>${veri.isim}</b>: ${veri.skor} Puan</li>`;
+        let tac = "";
+        if (i === 0) {
+            tac = "<span class='crown-1'>👑</span>"; // 1. için daha renkli/özel taç
+        } else if (i < 5) {
+            tac = "👑 "; // 2., 3., 4. ve 5. için standart taç
+        }
+        liste += `<li>${tac}<b>${veri.isim}</b>: ${veri.skor} Puan</li>`;
+        i++;
       });
       liste += "</ol>";
-      
-      let pano = document.getElementById('liderler');
-      if(!pano) {
-        pano = document.createElement('div');
-        pano.id = 'liderler';
-        $('msg').insertBefore(pano,$('go')); 
-      }
-      pano.innerHTML = liste;
+      $('liderlerContainer').innerHTML = liste;
     }).catch(err => {
       console.error("Tablo çekilemedi: ", err);
+      $('liderlerContainer').innerHTML = "Bağlantı hatası!";
     });
 }
+
+// Menü Butonları Tıklama Etkileşimleri
+$('btnKeys').onclick = () => {
+    $('mainMenu').style.display = 'none';$('keysMenu').style.display = 'flex';
+};
+
+$('btnScore').onclick = () => {
+    $('mainMenu').style.display = 'none';$('scoreMenu').style.display = 'flex';
+    skorTablosunuGetir();
+};
+
+$('backFromKeys').onclick = () => {
+    $('keysMenu').style.display = 'none';$('mainMenu').style.display = 'flex';
+};
+
+$('backFromScore').onclick = () => {
+    $('scoreMenu').style.display = 'none';$('mainMenu').style.display = 'flex';
+};
+
+$('go').onclick=()=>{
+  audioStart();
+  if(ac&&ac.state==='suspended')ac.resume();
+  size();
+  reset();
+  play=true;
+  $('msg').style.display='none';$('crashInfo').style.display='none';
+};
+
 
 function end(){
   play=false; crashSound(); shake=.6;
@@ -425,16 +484,15 @@ function end(){
       skorTablosunuGetir(); 
     }).catch((error) => {
       console.error("Skor kaydedilirken hata: ", error);
-      skorTablosunuGetir();
     });
-    
-  } else {
-    skorTablosunuGetir(); 
   }
 
-  $('mt').textContent='Kaza yaptın!';
-  $('ms').textContent='Mesafe: '+(s/1000).toFixed(2)+' km · Geçilen: '+over+' · Puan: '+sc;
-  $('go').textContent='Tekrar oyna';$('msg').style.display='flex';
+  // Kaza sonrası Ana menüyü göster
+  $('crashInfo').style.display = 'block';$('crashInfo').innerHTML = 'KAZA YAPTIN!<br>Mesafe: '+(s/1000).toFixed(2)+' km<br>Geçilen: '+over+'<br>Puan: '+sc;
+  $('go').textContent='tekrar başlat';
+  
+  $('mainMenu').style.display = 'flex';$('keysMenu').style.display = 'none';
+  $('scoreMenu').style.display = 'none';$('msg').style.display='flex';
 }
 
 const tp=new T.Vector3();
@@ -501,7 +559,6 @@ function loop(t){
 
 try{hi=+localStorage.getItem('hi3')||0}catch(e){}
 $('hi').textContent=hi;
-$('go').onclick=()=>{audioStart();if(ac&&ac.state==='suspended')ac.resume();size();reset();play=true;$('msg').style.display='none'};
 
 function shift(d){const n=Math.max(0,Math.min(6,gx+d));if(n===gx||(n===0&&speed>3))return;gx=n}
 
